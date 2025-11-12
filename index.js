@@ -41,3 +41,40 @@ app.use(express.static('public'))
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 })
+
+// Endpoint untuk membuat API key
+app.post('/create', async (req, res) => {
+  let connection;
+  try {
+    const timestamp = Date.now()
+    const random = crypto.randomBytes(32).toString('base64url')
+    const apiKey = 'sk-itumy-v1-' + timestamp + '_' + random
+    
+    // Simpan ke database
+    connection = await pool.getConnection()
+    const [result] = await connection.query(
+      'INSERT INTO api_keys (api_key, is_active) VALUES (?, ?)',
+      [apiKey, true]
+    )
+    
+    console.log('✅ API Key berhasil disimpan ke database, ID:', result.insertId)
+    
+    res.setHeader('Content-Type', 'application/json')
+    res.json({
+      success: true,
+      apiKey: apiKey,
+      message: 'API Key berhasil dibuat dan disimpan ke database',
+      dbId: result.insertId
+    })
+    
+  } catch (error) {
+    console.error('❌ Error saat membuat API key:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Gagal membuat API key',
+      message: error.message
+    })
+  } finally {
+    if (connection) connection.release()
+  }
+})
