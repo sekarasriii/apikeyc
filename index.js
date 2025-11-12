@@ -133,3 +133,84 @@ app.post('/checkapi', async (req, res) => {
     if (connection) connection.release()
   }
 })
+
+// Endpoint untuk list semua API keys
+app.get('/listkeys', async (req, res) => {
+  let connection;
+  try {
+    connection = await pool.getConnection()
+    const [rows] = await connection.query(
+      'SELECT id, api_key, created_at, is_active FROM api_keys ORDER BY created_at DESC'
+    )
+    
+    res.json({
+      success: true,
+      total: rows.length,
+      keys: rows
+    })
+    
+  } catch (error) {
+    console.error('❌ Error saat list keys:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Gagal mengambil data',
+      message: error.message
+    })
+  } finally {
+    if (connection) connection.release()
+  }
+})
+
+// Endpoint untuk deactivate API key
+app.post('/deactivate', async (req, res) => {
+  let connection;
+  try {
+    const { apiKey } = req.body
+    
+    if (!apiKey) {
+      return res.status(400).json({
+        success: false,
+        message: 'API Key tidak boleh kosong'
+      })
+    }
+    
+    connection = await pool.getConnection()
+    const [result] = await connection.query(
+      'UPDATE api_keys SET is_active = FALSE WHERE api_key = ?',
+      [apiKey]
+    )
+    
+    if (result.affectedRows > 0) {
+      res.json({
+        success: true,
+        message: 'API Key berhasil dinonaktifkan'
+      })
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'API Key tidak ditemukan'
+      })
+    }
+    
+  } catch (error) {
+    console.error('❌ Error saat deactivate key:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Gagal menonaktifkan API key',
+      message: error.message
+    })
+  } finally {
+    if (connection) connection.release()
+  }
+})
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received: closing HTTP server')
+  await pool.end()
+  process.exit(0)
+})
+
+app.listen(port, () => {
+  console.log(`🚀 Server berjalan di http://localhost:${port}`)
+})
