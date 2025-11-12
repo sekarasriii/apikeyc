@@ -31,3 +31,13 @@ async function testConnection() {
   }
 }
 testConnection()
+
+// Middleware
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(express.static('public'))
+
+// Route untuk root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+})
