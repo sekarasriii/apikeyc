@@ -16,3 +16,18 @@ const dbConfig = {
   connectionLimit: 10,
   queueLimit: 0
 }
+// Buat connection pool
+const pool = mysql.createPool(dbConfig)
+
+// Test koneksi database saat server start
+async function testConnection() {
+  try {
+    const connection = await pool.getConnection()
+    console.log('✅ Koneksi ke MySQL berhasil!')
+    connection.release()
+  } catch (error) {
+    console.error('❌ Gagal koneksi ke MySQL:', error.message)
+    process.exit(1)
+  }
+}
+testConnection()
